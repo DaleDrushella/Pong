@@ -1,0 +1,122 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace PongGame
+{
+    public partial class PongForm : Form
+    {
+        private int ballX = 5, ballY = 5; // Ball speed
+        private int paddleSpeed = 8;
+        private int ballDX = 5, ballDY = 5; // Ball direction
+        private int player1Score = 0, player2Score = 0;
+        private bool wPressed, sPressed, upPressed, downPressed;
+        private Timer gameTimer;
+
+        public PongForm()
+        {
+            InitializeComponent();
+            this.DoubleBuffered = true;
+            this.Width = 800;
+            this.Height = 500;
+            this.KeyDown += new KeyEventHandler(OnKeyDown);
+            this.KeyUp += new KeyEventHandler(OnKeyUp);
+
+            gameTimer = new Timer();
+            gameTimer.Interval = 20; // 50 FPS
+            gameTimer.Tick += new EventHandler(GameLoop);
+            gameTimer.Start();
+        }
+
+        private Rectangle ball = new Rectangle(390, 240, 20, 20);
+        private Rectangle player1 = new Rectangle(20, 200, 10, 80);
+        private Rectangle player2 = new Rectangle(770, 200, 10, 80);
+
+        private void GameLoop(object sender, EventArgs e)
+        {
+            MoveBall();
+            MovePaddles();
+            CheckCollisions();
+            Invalidate(); // Refresh the screen
+        }
+
+        private void MoveBall()
+        {
+            ball.X += ballDX;
+            ball.Y += ballDY;
+
+            // Ball hits top or bottom
+            if (ball.Y <= 0 || ball.Y >= this.ClientSize.Height - ball.Height)
+            {
+                ballDY = -ballDY;
+            }
+
+            // Ball goes out of bounds (score update)
+            if (ball.X <= 0)
+            {
+                player2Score++;
+                ResetBall();
+            }
+            if (ball.X >= this.ClientSize.Width)
+            {
+                player1Score++;
+                ResetBall();
+            }
+        }
+
+        private void MovePaddles()
+        {
+            if (wPressed && player1.Y > 0) player1.Y -= paddleSpeed;
+            if (sPressed && player1.Y < this.ClientSize.Height - player1.Height) player1.Y += paddleSpeed;
+            if (upPressed && player2.Y > 0) player2.Y -= paddleSpeed;
+            if (downPressed && player2.Y < this.ClientSize.Height - player2.Height) player2.Y += paddleSpeed;
+        }
+
+        private void CheckCollisions()
+        {
+            if (ball.IntersectsWith(player1) || ball.IntersectsWith(player2))
+            {
+                ballDX = -ballDX; // Reverse ball direction
+            }
+        }
+
+        private void ResetBall()
+        {
+            ball.X = this.ClientSize.Width / 2 - ball.Width / 2;
+            ball.Y = this.ClientSize.Height / 2 - ball.Height / 2;
+            ballDX = -ballDX; // Change direction
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.FillRectangle(Brushes.White, player1);
+            g.FillRectangle(Brushes.White, player2);
+            g.FillEllipse(Brushes.White, ball);
+            g.DrawString($"{player1Score} - {player2Score}", new Font("Arial", 16), Brushes.White, this.ClientSize.Width / 2 - 20, 10);
+        }
+
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.W) wPressed = true;
+            if (e.KeyCode == Keys.S) sPressed = true;
+            if (e.KeyCode == Keys.Up) upPressed = true;
+            if (e.KeyCode == Keys.Down) downPressed = true;
+        }
+
+        private void OnKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.W) wPressed = false;
+            if (e.KeyCode == Keys.S) sPressed = false;
+            if (e.KeyCode == Keys.Up) upPressed = false;
+            if (e.KeyCode == Keys.Down) downPressed = false;
+        }
+
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.Run(new PongForm());
+        }
+    }
+}
